@@ -96,6 +96,3 @@ When deploying this multi-modal agent platform to cloud nodes (e.g., HuggingFace
 2. Inject your production environment variables securely via the hosting provider's **Secrets / Environment Variables** management dashboard.
 3. Replace the local in-memory Chroma instance with a hosted persistent solution (`Pinecone`, `Qdrant`, or `Chroma Cloud`) for long-term production state preservation.
 
-```
-
-```
