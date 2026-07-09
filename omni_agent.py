@@ -2,10 +2,10 @@ import streamlit as st
 import os
 import base64
 import hashlib
-import mysql.connector
 from io import BytesIO
 from PIL import Image
 from dotenv import load_dotenv
+from supabase import create_client, Client
 
 # LangChain Engine Framework Components
 from langchain_mistralai import ChatMistralAI
@@ -18,11 +18,15 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 load_dotenv()
 
+# --- 🎨 3. Page Config & CSS Theme Control ---
+st.set_page_config(page_title="Secure OmniAgent Pro", page_icon="🔒", layout="wide")
+
+
 # --- 🌐 MULTI-LANGUAGE LOCALIZATION DICTIONARY ---
 LANG_DICT = {
     "English": {
         "title": "🔒 OmniAgent Enterprise Gateway",
-        "caption": "Your personal AI workspace secured with MySQL Encryption.",
+        "caption": "Your personal AI workspace secured with Supabase Identity Management.",
         "login_tab": "🔑 Login Existing User",
         "register_tab": "📝 Create New Account",
         "name": "Full Name",
@@ -33,7 +37,7 @@ LANG_DICT = {
         "btn_login": "Sign In 🚀",
         "btn_register": "Create Account ✨",
         "err_mismatch": "❌ Passwords do not match!",
-        "err_invalid": "❌ Invalid Username or Password!",
+        "err_invalid": "❌ Invalid Username/Email or Password!",
         "err_fill": "⚠️ Please fill all fields completely.",
         "err_exists": "⚠️ Username or Email already exists!",
         "success_reg": "🎉 Account successfully created! Please switch to the login tab.",
@@ -57,7 +61,7 @@ LANG_DICT = {
     },
     "Hindi (हिन्दी)": {
         "title": "🔒 ओम्नीएजेंट एंटरप्राइज गेटवे",
-        "caption": "आपका व्यक्तिगत एआई वर्कस्पेस जो माईएसक्यूएल एन्क्रिप्शन से सुरक्षित है।",
+        "caption": "आपका व्यक्तिगत एआई वर्कस्पेस जो Supabase से सुरक्षित है।",
         "login_tab": "🔑 लॉगिन करें",
         "register_tab": "📝 नया अकाउंट बनाएं",
         "name": "पूरा नाम",
@@ -68,7 +72,7 @@ LANG_DICT = {
         "btn_login": "साइन इन करें 🚀",
         "btn_register": "अकाउंट बनाएं ✨",
         "err_mismatch": "❌ पासवर्ड मेल नहीं खाते!",
-        "err_invalid": "❌ गलत यूज़रनेम या पासवर्ड!",
+        "err_invalid": "❌ गलत यूज़रनेम/ईमेल या पासवर्ड!",
         "err_fill": "⚠️ कृपया सभी फ़ील्ड पूरी तरह से भरें।",
         "err_exists": "⚠️ यूज़रनेम या ईमेल पहले से मौजूद है!",
         "success_reg": "🎉 अकाउंट सफलतापूर्वक बन गया है! कृपया लॉगिन टैब पर जाएं।",
@@ -83,7 +87,7 @@ LANG_DICT = {
         "engine_label": "🧬 इंजन: ",
         "chat_init": "नमस्ते! मैं आपका सुरक्षित एआई असिस्टेंट हूं। नीचे दिए गए `➕` एक्सपैंडर से फ़ाइलें जोड़ें।",
         "attach_title": "➕ संदर्भ फ़ाइल जोड़ें (PDF या इमेज दस्तावेज़)",
-        "upload_label": "अपलोड एरिया नोड",
+        "upload_label": "अपलोड पिया नोड",
         "chat_input": "कुछ भी पूछें... भेजने के लिए दाईं ओर तीर का उपयोग करें ⬆️",
         "toast_img": "इमेज सफलतापूर्वक लोड हो गई!",
         "toast_pdf": "PDF सफलतापूर्वक वेक्टराइज़ हो गया!",
@@ -92,7 +96,7 @@ LANG_DICT = {
     },
     "Hinglish": {
         "title": "🔒 OmniAgent Enterprise Gateway",
-        "caption": "Aapka personal AI workspace secured with MySQL Encryption.",
+        "caption": "Aapka personal AI workspace secured with Supabase Encryption.",
         "login_tab": "🔑 Login Existing User",
         "register_tab": "📝 Naya Account Banayein",
         "name": "Pura Naam (Full Name)",
@@ -103,7 +107,7 @@ LANG_DICT = {
         "btn_login": "Sign In 🚀",
         "btn_register": "Create Account ✨",
         "err_mismatch": "❌ Passwords match nahi kar rahe hain!",
-        "err_invalid": "❌ Galat Username ya Password! Kripya check karein.",
+        "err_invalid": "❌ Galat Username/Email ya Password! Kripya check karein.",
         "err_fill": "⚠️ Kripya saari fields ko completely fill karein.",
         "err_exists": "⚠️ Username ya Email pehle se maujood hai!",
         "success_reg": "🎉 Account successfully ban gaya hai! Ab login tab par jaakar login karein.",
@@ -135,9 +139,11 @@ if "authenticated" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = None
 if "theme" not in st.session_state:
-    st.session_state.theme = "Light"
+    st.session_state.theme = "Light"  # Default active Light mode
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "enable_tavily" not in st.session_state:
+    st.session_state.enable_tavily = True  # Default active Tavily
 
 # Helper Function to get translated strings shortcode
 def t(key):
@@ -158,58 +164,49 @@ if "processed_file_fingerprint" not in st.session_state:
 if "img_base64_cache" not in st.session_state:
     st.session_state.img_base64_cache = None
 
-# --- 🗄️ 2. MySQL Database Functions (Port 3300) ---
-def get_db_connection():
-    try:
-        conn = mysql.connector.connect(
-            host=os.getenv("MYSQL_HOST", "localhost"),
-            port=int(os.getenv("MYSQL_PORT", 3300)), # Port 3300 integrated
-            user=os.getenv("MYSQL_USER", "root"),
-            password=os.getenv("MYSQL_PASSWORD", "password"), # Add your secret password here
-            database=os.getenv("MYSQL_DB", "omni_agent_db")
-        )
-        return conn
-    except Exception as e:
-        st.error(f"⚠️ Database Connection Failed: {e}")
-        return None
+# --- 🗄️ 2. Supabase Database Integration ---
+@st.cache_resource
+def get_supabase_client() -> Client:
+    url = os.getenv("SUPABASE_URL", "https://lxshatcvpnsnwewwxxus.supabase.co")
+    key = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4c2hhdGN2cG5zbndld3d4eHVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTExNDcsImV4cCI6MjA5ODk4NzE0N30.h77rNYCOcy_D3ilMPb6VB70AIWRLhDZY1Gp55hAeXqw")
+    return create_client(url, key)
+
+supabase = get_supabase_client()
 
 def make_hash(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
 def register_user(name, username, email, password):
-    conn = get_db_connection()
-    if not conn: return False
-    cursor = conn.cursor()
     try:
         hashed_pw = make_hash(password)
-        cursor.execute(
-            "INSERT INTO users (name, username, email, password_hash) VALUES (%s, %s, %s, %s)", 
-            (name, username, email, hashed_pw)
-        )
-        conn.commit()
-        return "success"
-    except mysql.connector.Error as err:
-        if err.errno == 1062: # Database duplicate entry code
+        # Pehle check karte hain ki user exist to nahi karta
+        check_user = supabase.table("users").select("*").or_(f"username.eq.{username},email.eq.{email}").execute()
+        if len(check_user.data) > 0:
             return "exists"
-        else:
-            st.error(f"Execution Error: {err}")
-            return "error"
-    finally:
-        conn.close()
+        
+        # Supabase client se insert command execute करना
+        data = {
+            "name": name,
+            "username": username,
+            "email": email,
+            "password_hash": hashed_pw
+        }
+        supabase.table("users").insert(data).execute()
+        return "success"
+    except Exception as e:
+        st.error(f"Execution Error: {e}")
+        return "error"
 
-def authenticate_user(username, password):
-    conn = get_db_connection()
-    if not conn: return False
-    cursor = conn.cursor()
-    hashed_pw = make_hash(password)
-    # User username ya email dono me se kisi se bhi login kar sake uski utility di hai
-    cursor.execute("SELECT * FROM users WHERE (username = %s OR email = %s) AND password_hash = %s", (username, username, hashed_pw))
-    result = cursor.fetchone()
-    conn.close()
-    return result is not None
+def authenticate_user(username_or_email, password):
+    try:
+        hashed_pw = make_hash(password)
+        # Username ya email dono filtering criteria matching logic built
+        result = supabase.table("users").select("*").or_(f"username.eq.{username_or_email},email.eq.{username_or_email}").eq("password_hash", hashed_pw).execute()
+        return len(result.data) > 0
+    except Exception as e:
+        st.error(f"Auth Fault: {e}")
+        return False
 
-# --- 🎨 3. Page Config & CSS Theme Control ---
-st.set_page_config(page_title="Secure OmniAgent Pro", page_icon="🔒", layout="wide")
 
 if st.session_state.theme == "Dark":
     st.markdown("<style>.stApp { background-color: #0b0f19; color: #f1f5f9; } section[data-testid='stSidebar'] { background-color: #111827 !important; }.badge-info { color: #38bdf8; font-weight: bold; }</style>", unsafe_allow_html=True)
@@ -219,7 +216,6 @@ else:
 
 # --- 🎫 4. AUTHENTICATION GATEWAY ---
 if not st.session_state.authenticated:
-    # Language Dropdown interface level par system switch karne ke liye
     cols = st.columns([8, 2])
     with cols[1]:
         selected_lang = st.selectbox("🌐 Interface Language", options=["English", "Hindi (हिन्दी)", "Hinglish"], index=["English", "Hindi (हिन्दी)", "Hinglish"].index(st.session_state.lang))
@@ -284,11 +280,9 @@ with st.sidebar:
     st.caption(t("terminal_sidebar"))
     st.divider()
     
-    # Active inside application language switcher node
     selected_lang_sidebar = st.selectbox("🌐 System Language", options=["English", "Hindi (हिन्दी)", "Hinglish"], index=["English", "Hindi (हिन्दी)", "Hinglish"].index(st.session_state.lang), key="sidebar_lang_select")
     if selected_lang_sidebar != st.session_state.lang:
         st.session_state.lang = selected_lang_sidebar
-        # Reset the default greeting message matching state language
         st.session_state.chat_history[0] = {"role": "assistant", "content": t("chat_init"), "source": "Core LLM Brain"}
         st.rerun()
         
@@ -300,7 +294,9 @@ with st.sidebar:
         st.rerun()
         
     st.divider()
-    enable_tavily = st.toggle(t("tavily_sidebar"), value=True)
+    enable_tavily = st.toggle(t("tavily_sidebar"), value=st.session_state.enable_tavily)
+    if enable_tavily != st.session_state.enable_tavily:
+        st.session_state.enable_tavily = enable_tavily
     
     st.divider()
     if st.button(t("logout_sidebar"), use_container_width=True):
@@ -382,10 +378,13 @@ if prompt_query := st.chat_input(t("chat_input")):
                     {"type": "image_url", "image_url": f"data:image/jpeg;base64,{st.session_state.img_base64_cache}"}
                 ]
                 
+                # Streaming Output Logic
                 full_stream_text = ""
+                # Stream object direct output generator placeholder structure update node
                 for chunk in llm.stream([HumanMessage(content=vision_payload)]):
                     full_stream_text += chunk.content
-                    response_placeholder.write(full_stream_text)
+                    response_placeholder.markdown(full_stream_text + "▌")
+                response_placeholder.markdown(full_stream_text) # Remove cursor container completely
                 
                 st.session_state.img_base64_cache = None
                 st.session_state.processed_file_fingerprint = None
@@ -398,7 +397,7 @@ if prompt_query := st.chat_input(t("chat_input")):
                     matched_nodes = st.session_state.vector_store.max_marginal_relevance_search(prompt_query, k=4)
                     context_payload += "\n\n[LOCAL PDF FACTS]:\n" + "\n\n".join([n.page_content for n in matched_nodes])
                     
-                if enable_tavily:
+                if st.session_state.enable_tavily:
                     query_lower = prompt_query.lower()
                     realtime_signals = ["news", "today", "current", "latest", "time", "weather", "market", "stock", "score", "date"]
                     if any(sig in query_lower for sig in realtime_signals):
@@ -420,10 +419,12 @@ if prompt_query := st.chat_input(t("chat_input")):
                     else: messages_stack.append(AIMessage(content=past_turn["content"]))
                 messages_stack.append(HumanMessage(content=prompt_query))
                 
+                # Streaming Output Logic for text chunk processing
                 full_stream_text = ""
                 for chunk in llm.stream(messages_stack):
                     full_stream_text += chunk.content
-                    response_placeholder.write(full_stream_text)
+                    response_placeholder.markdown(full_stream_text + "▌")
+                response_placeholder.markdown(full_stream_text)
             
             st.session_state.chat_history.append({
                 "role": "assistant",
