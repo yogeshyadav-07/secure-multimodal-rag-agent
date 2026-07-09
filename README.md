@@ -1,103 +1,110 @@
-# 🔒 OmniAgent Pro: Secure Multi-Modal Enterprise AI Platform
+# 🔒 Secure OmniAgent Pro
 
-OmniAgent Pro is a production-ready AI Agentic platform built using **Streamlit**, **LangChain**, and **Mistral AI**. It features an encrypted **MySQL-backed Authentication Gateway** running on a custom port, real-time web intelligence via **Tavily Search**, local document vectorization (RAG), computer vision capabilities, and a fully dynamic **Multi-Language Interface Engine** (supporting English, Hindi, and Hinglish).
+An elite, multi-modal enterprise AI assistant platform secured with Supabase Identity Management. Built with Streamlit and LangChain, featuring localized interfaces in English, Hindi, and Hinglish. Anchored to a factual 2026 timeline.
 
----
-
-## 🚀 Key Features
-
-*   **🔒 Secure MySQL Auth Gateway:** Fully integrated login, signup, and user validation pipeline using `SHA-256` password hashing. Tracks user sessions safely with customizable database ports (Default: `3300`) and supports dual login via Username or Email.
-*   **🌐 Tri-Lingual Localization:** Real-time UI and System engine translation. Switch seamlessly between **English**, **Hindi (हिन्दी)**, and **Hinglish** mid-session without losing chat state.
-*   **🧬 Advanced Multi-Modal Architecture:**
-    *   **Document RAG Index:** Dynamically chunks and vectorizes multi-page PDFs using `ChromaDB` and `HuggingFace Embeddings` (`all-MiniLM-L6-v2`) for local context injection.
-    *   **Computer Vision Engine:** Converts incoming visual attachments to Base64 payloads for direct multimodal analysis using `mistral-large-latest`.
-*   **🌍 Live Web Grounding (Tavily):** Detects time-sensitive or real-time intent dynamically, querying the live web to anchor answers accurately in the current temporal frame (**2026**).
-*   **🌙 Dynamic Workspace Toggling:** Full dark/light mode workspace stylesheet rendering managed directly within the user session state.
-*   **⚡ Real-Time Word Streaming:** Outputs responses word-by-word instantly to eliminate interface lag and reduce token load wait-times.
+👉 **Live Deployment (Hugging Face Spaces):** 
+https://huggingface.co/spaces/yogesh-yadav/omni-agent-pro
 
 ---
 
-'''
+## 🚀 Project Overview
 
-Live Link : https://share.google/Hc5YhrwMoVibeNNav
+Secure OmniAgent Pro is a highly scalable and secure multi-modal AI workstation engineered for enterprise workloads. By utilizing state-of-the-art Large Language Models (via Mistral AI), robust Vector RAG pipelines for documents, and real-time internet search capabilities, it brings actionable intelligence directly into a controlled environment.
 
-'''
-## 🛠️ Tech Stack
+## ✨ Core Features
 
-*   **Frontend/UI:** Streamlit (Custom Native CSS Injection)
-*   **Orchestration Framework:** LangChain Core, LangChain Community
-*   **LLM Provider:** Mistral AI (`mistral-large-latest` Streaming Node)
-*   **Vector Database:** ChromaDB (In-Memory Processing)
-*   **Embeddings Model:** HuggingFace Transformers (`all-MiniLM-L6-v2`)
-*   **Database Infrastructure:** MySQL Server (Port: 3300)
+### 🔐 1. Enterprise Identity & Access Management
+* **Secure Gateway:** Integrated Registration and Login interface to prevent unauthenticated access.
+* **Database Guardrails:** User profiles, tokens, and active sessions are persistently tracked using **Supabase RLS** (Row-Level Security).
+* **Password Encryption:** Zero-knowledge compliance via robust SHA-256 password hashing.
+
+### 🌐 2. Native Localization (Multi-Language)
+The system UI elements and operational guardrails automatically shift depending on the active preference node:
+* **English:** Corporate/Standard operational language.
+* **Hindi (हिन्दी):** Complete vernacular dev translation.
+* **Hinglish:** Hybrid interaction layer optimized for colloquial enterprise team communication.
+
+### 🧠 3. Advanced Multi-Modal Context Engine
+The system analyzes user input and dynamically routes instructions across dedicated background engines:
+* **🧬 Core LLM Brain:** Deep contextual reasoning powered by `mistral-large-latest`.
+* **🖼️ Computer Vision Node:** Accepts heavy file buffers (PNG, JPG, JPEG) to run real-time optical/structural analysis.
+* **📄 Document Vector Index (RAG):** Implements dynamic in-memory **ChromaDB** parsing with `HuggingFaceEmbeddings` (`all-MiniLM-L6-v2`) to query raw PDF schemas.
+* **🌐 Live Web Search Engine (Tavily):** Automatic external context retrieval if queries demand ultra-recent or 2026 chronological facts.
 
 ---
 
-## 📋 Prerequisites & Installation
+## 🛠️ Tech Stack & Dependencies
 
-### 1. Database Configuration
-Before booting up the interface, establish the relational tracking schema in your MySQL environment (Ensure your database instance is running on port `3300` or adjust the environment variables accordingly):
+* **Frontend Engine:** Streamlit (v1.35.0+)
+* **AI Orchestration:** LangChain / LangChain Core / LangChain Community
+* **Base Framework Model:** Mistral AI API Layer
+* **Vector VectorDB:** ChromaDB
+* **Data Storage / Auth:** Supabase Client Engine
+* **Context Fetcher:** Tavily Search Engine
 
-```sql
-CREATE DATABASE IF NOT EXISTS omni_agent_db;
-USE omni_agent_db;
+---
 
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(64) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+## ⚙️ Local Configuration & Setup
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yogeshyadav-07/secure-multimodal-rag-agent.git
+cd secure-multimodal-rag-agent
+2. Environment Variables (.env)
+Create a .env file in the root structure of your directory and insert your secure API tokens:
+
+Code snippet
+MISTRAL_API_KEY=your_mistral_api_token
+TAVILY_API_KEY=your_tavily_search_token
+SUPABASE_URL=your_supabase_project_endpoint
+SUPABASE_KEY=your_supabase_anon_public_key
+3. Database Schema Blueprint
+Execute the following SQL commands inside the Supabase SQL Editor to construct the target data node:
+
+SQL
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+4. Running the Local Server
+Bash
+pip install -r requirements.txt
+streamlit run app.py
+🤗 Hugging Face Spaces Deployment Workflow
+Since this repository is configured for cloud synchronization, you can easily host it on Hugging Face Spaces:
 
-```
+Space Creation: Create a new Space on Hugging Face and choose Streamlit as the SDK.
 
-### 2. Install Dependencies
+Repository Sync: Push this codebase directly to your Hugging Face Space Git remote endpoint.
 
-Clone the repository and install the verified architectural packages:
+Important Note on Secrets: Go to the Space Settings -> Variables and secrets tab and add the following securely:
 
-```bash
-pip install streamlit langchain-core langchain-community langchain-mistralai mysql-connector-python python-dotenv chromadb sentence-transformers pypdf pillow
+MISTRAL_API_KEY
 
-```
+TAVILY_API_KEY
 
-### 3. Environment Variables Setup
+SUPABASE_URL
 
-Create a `.env` file in the root directory of your project and populate it with your operational configurations:
+SUPABASE_KEY
 
-```env
-# AI Model Infrastructure
-MISTRAL_API_KEY=your_mistral_api_key_here
-TAVILY_API_KEY=your_tavily_search_api_key_here
+3. Database Schema Blueprint
+Execute the following SQL commands inside the Supabase SQL Editor to construct the target data node:
 
-# MySQL Storage Infrastructure
-MYSQL_HOST=localhost
-MYSQL_PORT=port_number
-MYSQL_USER=root
-MYSQL_PASSWORD=your_database_password_here
-MYSQL_DB=omni_agent_db
+SQL
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+4. Running the Local Server
 
-```
-
----
-
-## 🏎️ Running the Platform
-
-To initialize the secure workspace gateway, execute the following execution block in your terminal:
-
-```bash
-streamlit run OmniAgent_Final.py
-
-```
-
----
-
-## 🛡️ Production Deployment Guidelines
-
-When deploying this multi-modal agent platform to cloud nodes (e.g., HuggingFace Spaces, Streamlit Cloud, Railway, or Render):
-
-1. Ensure that your local `.env` file is explicitly declared inside your `.gitignore` profile to avoid leaking critical API credentials.
-2. Inject your production environment variables securely via the hosting provider's **Secrets / Environment Variables** management dashboard.
-3. Replace the local in-memory Chroma instance with a hosted persistent solution (`Pinecone`, `Qdrant`, or `Chroma Cloud`) for long-term production state preservation.
-
+Bash
+pip install -r requirements.txt
+streamlit run app.py
